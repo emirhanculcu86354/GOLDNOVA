@@ -15,7 +15,7 @@
 *,*::before,*::after{box-sizing:inherit}
 html{background:var(--bg);scroll-padding-top:calc(env(safe-area-inset-top,0px) + 64px)}
 body{margin:0;background:var(--bg);color:var(--ink);font-family:'Archivo',system-ui,-apple-system,'Segoe UI',sans-serif;font-size:15.5px;line-height:1.45;-webkit-tap-highlight-color:transparent;font-variant-numeric:tabular-nums}
-body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:41;background:var(--bar);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
+
 button,input,select,textarea{font:inherit;color:inherit}
 button{cursor:pointer}
 :focus-visible{outline:2.5px solid var(--gold);outline-offset:2px}
@@ -432,3 +432,9 @@ a.link{text-decoration:none}
 .si .l img{height:24px;width:auto;flex:none}
 .auth-logo .crest-img{height:130px}
 .lres .tbg img{height:44px}
+
+/* v5: iPhone ana ekran düzeltmeleri, profil butonu */
+#meBtn{padding:0;overflow:hidden;border-radius:50%}
+#meBtn .av{width:100%;height:100%;font-size:14px}
+@media (display-mode: standalone){html{min-height:100%}}
+.lu-info{display:flex;flex-direction:column;gap:6px;font-size:14.5px}

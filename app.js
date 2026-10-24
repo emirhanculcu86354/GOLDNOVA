@@ -242,7 +242,7 @@ async function start() {
 }
 
 /* ---------- yönlendirme ---------- */
-const VIEWS = ['home', 'matches', 'feed', 'squad', 'me']; let curV = 'home';
+const VIEWS = ['home', 'matches', 'lineup', 'feed', 'squad', 'me']; let curV = 'home';
 function route() {
   const h = location.hash.slice(1).split('/'); let v = h[0];
   if (v === 'match') { v = 'matches'; setTimeout(() => h[1] && matchDetail(h[1]), 50); }
@@ -252,7 +252,30 @@ function route() {
   render();
   if (v === 'feed' && h[1]) setTimeout(() => { const el = document.getElementById('post-' + h[1]); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 100);
 }
-function render() { ({ home: renderHome, matches: renderMatches, feed: renderFeed, squad: renderSquad, me: renderMe })[curV](); }
+function render() { const b = $('#meBtn'); if (b && ME) b.innerHTML = avatar(ME, 's'); ({ home: renderHome, matches: renderMatches, lineup: renderLineupView, feed: renderFeed, squad: renderSquad, me: renderMe })[curV](); }
+$('#meBtn').onclick = () => { location.hash = 'me'; };
+let luId = null;
+function renderLineupView() {
+  const seen = new Set(), list = [...upcoming(), ...pending(), ...played()].filter(m => !seen.has(m.id) && seen.add(m.id));
+  const sel = $('#luSel');
+  if (!list.length) { sel.classList.add('hide'); $('#luSub').textContent = ''; $('#luBody').innerHTML = `<div class="card empty-m"><b>Henüz maç yok</b><p class="sub">Maç oluşturulunca kadrosu burada görünür.</p>${isAdmin() ? '<button class="btn pri" id="luNew" style="margin-top:12px">+ Maç oluştur</button>' : ''}</div>`; const n = $('#luNew'); if (n) n.onclick = () => editMatch(null); return; }
+  sel.classList.remove('hide');
+  const m = list.find(x => x.id === luId) || nextMatch() || list[0]; luId = m.id;
+  sel.innerHTML = list.map(x => `<option value="${x.id}" ${x.id === m.id ? 'selected' : ''}>${esc(fShort(when(x)))}: ${esc(opp(x))}${x.result ? ` (${x.result.us}-${x.result.them})` : x === nextMatch() ? ' (sıradaki)' : ''}</option>`).join('');
+  sel.onchange = () => { luId = sel.value; renderLineupView(); };
+  $('#luSub').textContent = `GOLDNOVA – ${opp(m)}, ${fDate(when(m))} ${m.time}`;
+  const inLu = new Set(((m.lineup && m.lineup.slots) || []).filter(Boolean)), g = going(m), bench = g.filter(u => !inLu.has(u.id));
+  const left = m.lineup ? `<div class="pitch">${pitchHTML(m, false).html}</div>` : `<div class="card empty-m"><b>Kadro henüz açıklanmadı</b><p class="sub">${isAdmin() ? 'Gelenlerden kadroyu kur, herkese bildirim gitsin.' : 'Yönetici kadroyu kurunca burada görünecek ve bildirim gelecek.'}</p>${isAdmin() ? '<button class="btn pri" id="luKur" style="margin-top:12px">Kadroyu kur</button>' : ''}</div>`;
+  $('#luBody').innerHTML = `<div>${left}</div><div class="col">
+    <div class="card lu-info"><h2 class="st" style="margin-bottom:4px">${esc(m.saha)}</h2><span class="muted">${esc(fDate(when(m)))}, ${esc(m.time)}${m.lineup ? ', taktik ' + esc(m.lineup.form) : ''}</span>
+     <div class="row" style="margin-top:8px">${isAdmin() ? `<button class="btn pri" id="luEdit">${m.lineup ? 'Kadroyu düzenle' : 'Kadroyu kur'}</button>` : ''}<button class="btn wa" id="luWa">WhatsApp’ta paylaş</button><button class="btn" id="luDet">Maç detayı</button></div></div>
+    <div class="card"><h2 class="st" style="margin-bottom:8px">Gelenler (${g.length}/${m.format})</h2>${g.length ? `<div class="pl">${g.map(u => `<div class="pr" style="grid-template-columns:auto 1fr auto">${avatar(u, 's')}<button class="n" data-prof="${u.id}" style="border:none;background:none;text-align:left;padding:0"><b>${esc(u.name)}</b><small>${POS[u.pos]}${u.num ? ', #' + esc(u.num) : ''}</small></button><span class="tag ${inLu.has(u.id) ? 'gel' : ''}">${inLu.has(u.id) ? 'İlk 7' : 'Yedek'}</span></div>`).join('')}</div>` : '<p class="sub">Henüz “Geliyorum” diyen yok.</p>'}</div>
+    ${bench.length && m.lineup ? `<div class="card"><h2 class="st" style="margin-bottom:8px">Yedekler</h2><div class="bench">${bench.map(u => `<span>${esc(u.name)}</span>`).join('')}</div></div>` : ''}</div>`;
+  bind($('#v-lineup'));
+  const k = $('#luKur') || $('#luEdit'); if (k) k.onclick = () => lineupEditor(m);
+  const e2 = $('#luEdit'); if (e2) e2.onclick = () => lineupEditor(m);
+  $('#luWa').onclick = () => shareText(matchText(m)); $('#luDet').onclick = () => matchDetail(m.id);
+}
 window.addEventListener('hashchange', () => { if (!ME) return; route(); });
 async function refresh() { if (!ME || document.hidden) return; try { await loadAll(); if (!dlg.open) render(); } catch { } }
 document.addEventListener('visibilitychange', refresh);
@@ -706,7 +729,8 @@ async function renderMe() {
   $('#meR').innerHTML = `<div class="card"><h2 class="st" style="margin-bottom:4px">Bildirimler</h2>
     <div class="tgl"><div><b>Telefon bildirimleri</b><small>${ps === 'unsupported' ? (isIOS() ? 'iPhone’da önce Ana Ekrana Ekle, sonra uygulamadan aç' : 'Bu tarayıcı desteklemiyor') : ps === 'denied' ? 'Tarayıcı ayarlarından izin vermelisin' : 'Yeni maç, kadro, sonuç, video ve maç hatırlatması'}</small></div><button class="sw2" id="tPush" role="switch" aria-checked="${ps === 'on' && ME.notifyPush !== false}" ${ps === 'unsupported' || ps === 'denied' ? 'disabled' : ''} aria-label="Telefon bildirimleri"></button></div>
     <div class="tgl"><div><b>E-posta</b><small>${MAILON ? 'Yeni maç açıldığında e-posta al' : 'Yeni maç açıldığında e-posta al'}</small></div><button class="sw2" id="tMail" role="switch" aria-checked="${ME.notifyEmail !== false}" aria-label="E-posta bildirimleri"></button></div>
-    ${ps === 'on' ? '<button class="btn sm" id="tTest" style="margin-top:8px">Test bildirimi gönder</button>' : ''}</div>
+    <div class="row" style="margin-top:8px">${ps === 'on' ? '<button class="btn sm" id="tTest">Test bildirimi gönder</button>' : ''}<button class="btn sm" id="tMailTest">Test e-postası gönder</button></div></div>
+   <div class="card"><div class="tgl" style="border:none;padding:0"><div><b>Tema</b><small>Açık ya da koyu görünüm</small></div><button class="btn sm" id="tTheme">Değiştir</button></div></div>
    <form class="card form" id="pwF"><h2 class="st full" style="margin-bottom:4px">Şifre değiştir</h2>
     <label class="f full">Mevcut şifre<input type="password" name="oldPassword" autocomplete="current-password"></label>
     <label class="f full">Yeni şifre<input type="password" name="password" autocomplete="new-password"></label>
@@ -718,6 +742,8 @@ async function renderMe() {
   $('#pwF').onsubmit = async e => { e.preventDefault(); const f = Object.fromEntries(new FormData(e.target)); if (!f.password) { toast('Yeni şifreyi yaz'); return; } try { await api('/me', { method: 'PUT', body: f }); e.target.reset(); toast('Şifren değişti'); } catch (er) { fail(er); } };
   $('#tPush').onclick = async () => { if ($('#tPush').getAttribute('aria-checked') === 'true') { await disablePush(); ME = (await api('/me', { method: 'PUT', body: { notifyPush: false } })).me; toast('Telefon bildirimleri kapatıldı'); } else await enablePush(); renderMe(); };
   $('#tMail').onclick = async () => { try { ME = (await api('/me', { method: 'PUT', body: { notifyEmail: ME.notifyEmail === false } })).me; renderMe(); } catch (e) { fail(e); } };
+  $('#tTheme').onclick = () => $('#themeBtn').click();
+  $('#tMailTest').onclick = async ev => { const b = ev.currentTarget; b.disabled = true; b.textContent = 'Gönderiliyor…'; const r = await notify('test_mail'); b.disabled = false; b.textContent = 'Test e-postası gönder'; toast(!r ? 'Fonksiyona ulaşılamadı' : r.mail === 'ok' ? `Gönderildi: ${ME.email} (spam klasörüne de bak)` : 'Gönderilemedi: ' + r.mail); };
   const tt = $('#tTest'); if (tt) tt.onclick = async () => { await api('/push/test', { method: 'POST' }); toast('Gönderildi, birkaç saniye içinde gelmeli'); };
   const ib = $('#inst'); if (ib) ib.onclick = async () => { installEvt.prompt(); await installEvt.userChoice; installEvt = null; renderMe(); };
   $('#logout').onclick = async () => { await disablePush(); await api('/auth/logout', { method: 'POST' }).catch(() => { }); ME = null; showAuth(); };

@@ -1,0 +1,18 @@
+# Maçtan 3 saat önce hatırlatma bildirimi gönderir (her 15 dakikada bir kontrol).
+# Gerekli GitHub Secrets: SUPABASE_URL, SUPABASE_ANON_KEY, CRON_SECRET
+name: Maç hatırlatıcı
+on:
+  schedule:
+    - cron: '*/15 * * * *'
+  workflow_dispatch:
+jobs:
+  remind:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Hatırlatma kontrolü
+        run: |
+          curl -sS -X POST "${{ secrets.SUPABASE_URL }}/functions/v1/notify" \
+            -H "Authorization: Bearer ${{ secrets.SUPABASE_ANON_KEY }}" \
+            -H "x-cron-secret: ${{ secrets.CRON_SECRET }}" \
+            -H "Content-Type: application/json" \
+            -d '{"type":"remind"}'

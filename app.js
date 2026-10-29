@@ -26,6 +26,7 @@ const IC = {
   share: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 3v12M7 8l5-5 5 5M5 14v6h14v-6"/></svg>'
 };
 const TAGS = { gol: 'Gol', kurtaris: 'Kurtarış', pozisyon: 'Pozisyon', komik: 'Komik an', diger: 'Diğer' };
+const LOGO = './logo.png';
 
 /* ---------- yardımcılar ---------- */
 const $ = s => document.querySelector(s);
@@ -106,9 +107,14 @@ async function api(path, opt = {}) {
     if (old) sb.storage.from(old.bucket).remove([old.path]);
     return { me };
   }
+  if (path === '/users' && method === 'POST') {
+    const name = String(b.name || '').trim(); if (!name) throw new Error('Oyuncunun adını yaz');
+    const row = { name: name.slice(0, 30), num: String(b.num || '').replace(/\D/g, '').slice(0, 2), pos: b.pos || 'OS', foot: b.foot || 'Sağ', guest: true, role: 'member', notify_email: false, notify_push: false };
+    return { user: mapU(chk(await sb.from('profiles').insert(row).select().single())) };
+  }
   if ((mm = path.match(/^\/users\/([^/]+)$/))) {
     if (method === 'DELETE') { chk(await sb.from('profiles').delete().eq('id', mm[1])); return {}; }
-    const p = {}; if (b.pos) p.pos = b.pos; if (b.num !== undefined) p.num = String(b.num).replace(/\D/g, '').slice(0, 2); if (b.stats) p.stats = b.stats; if (b.role) p.role = b.role;
+    const p = {}; if (b.name && String(b.name).trim()) p.name = String(b.name).trim().slice(0, 30); if (b.pos) p.pos = b.pos; if (b.num !== undefined) p.num = String(b.num).replace(/\D/g, '').slice(0, 2); if (b.stats) p.stats = b.stats; if (b.role) p.role = b.role;
     return { user: mapU(chk(await sb.from('profiles').update(p).eq('id', mm[1]).select().single())) };
   }
   if (path === '/matches' && method === 'POST') {
@@ -137,7 +143,7 @@ async function api(path, opt = {}) {
     return { match: await fetchMatch(mm[1]) };
   }
   if ((mm = path.match(/^\/matches\/([^/]+)\/lineup$/))) {
-    chk(await sb.from('matches').update({ lineup: { form: b.form, slots: b.slots } }).eq('id', mm[1]));
+    chk(await sb.from('matches').update({ lineup: { form: b.form, slots: b.slots, at: new Date().toISOString() } }).eq('id', mm[1]));
     if (b.notify) notify('lineup', { id: mm[1] });
     return { match: await fetchMatch(mm[1]) };
   }
@@ -163,6 +169,7 @@ async function api(path, opt = {}) {
     notify('comment', { id: c.id }); return { video: await fetchVideo(mm[1]) };
   }
   if ((mm = path.match(/^\/videos\/([^/]+)\/comments\/([^/]+)$/))) { chk(await sb.from('comments').delete().eq('id', mm[2])); return { video: await fetchVideo(mm[1]) }; }
+  if ((mm = path.match(/^\/matches\/([^/]+)\/tactic$/))) { chk(await sb.from('matches').update({ tactic: b.tactic }).eq('id', mm[1])); return { match: await fetchMatch(mm[1]) }; }
   if (path === '/push/subscribe') { chk(await sb.from('push_subs').upsert({ endpoint: b.subscription.endpoint, user_id: ME.id, sub: b.subscription }, { onConflict: 'endpoint' })); return {}; }
   if (path === '/push/unsubscribe') { await sb.from('push_subs').delete().eq('endpoint', b.endpoint); return {}; }
   if (path === '/push/test') { const r = await notify('test'); if (r && r.push === false) throw new Error('Bildirim anahtarları Supabase’e eklenmemiş (README adım 5)'); return {}; }
@@ -173,7 +180,9 @@ const fail = e => toast(e.message || 'Bir hata oldu');
 /* ---------- veri ---------- */
 let ME = null, USERS = [], MATCHES = [], VIDEOS = [], PUSHKEY = null, MAILON = false;
 const byId = id => USERS.find(u => u.id === id);
-const isAdmin = () => ME && ME.role === 'admin';
+const isAdmin = () => ME && (ME.role === 'admin' || ME.role === 'owner');
+const isOwner = () => ME && ME.role === 'owner';
+const roleTag = p => p.role === 'owner' ? '<span class="adm">Kurucu</span>' : p.role === 'admin' ? '<span class="adm">Yön.</span>' : p.guest ? '<span class="adm" style="color:var(--muted);border-color:var(--line)">Kayıtsız</span>' : '';
 async function loadAll() {
   const { data: { session } } = await sb.auth.getSession(); if (!session) throw new Error('no session');
   const [p, m, r, v] = await Promise.all([sb.from('profiles').select('*'), sb.from('matches').select('*'), sb.from('rsvps').select('*'), sb.from('videos').select(VSEL).order('created_at', { ascending: false })]);
@@ -254,8 +263,10 @@ function route() {
 }
 function render() { const b = $('#meBtn'); if (b && ME) b.innerHTML = avatar(ME, 's'); ({ home: renderHome, matches: renderMatches, lineup: renderLineupView, feed: renderFeed, squad: renderSquad, me: renderMe })[curV](); }
 $('#meBtn').onclick = () => { location.hash = 'me'; };
-let luId = null;
+let luId = null, luTab = 'p';
 function renderLineupView() {
+  if (!$('#luSeg')) { $('#luBody').insertAdjacentHTML('beforebegin', '<div class="seg" id="luSeg" style="margin-bottom:12px"><button data-t="p">Kadro</button><button data-t="t">Taktik tahtası</button></div>'); $('#luSeg').querySelectorAll('button').forEach(b => b.onclick = () => { luTab = b.dataset.t; renderLineupView(); }); }
+  $('#luSeg').querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', b.dataset.t === luTab));
   const seen = new Set(), list = [...upcoming(), ...pending(), ...played()].filter(m => !seen.has(m.id) && seen.add(m.id));
   const sel = $('#luSel');
   if (!list.length) { sel.classList.add('hide'); $('#luSub').textContent = ''; $('#luBody').innerHTML = `<div class="card empty-m"><b>Henüz maç yok</b><p class="sub">Maç oluşturulunca kadrosu burada görünür.</p>${isAdmin() ? '<button class="btn pri" id="luNew" style="margin-top:12px">+ Maç oluştur</button>' : ''}</div>`; const n = $('#luNew'); if (n) n.onclick = () => editMatch(null); return; }
@@ -264,6 +275,7 @@ function renderLineupView() {
   sel.innerHTML = list.map(x => `<option value="${x.id}" ${x.id === m.id ? 'selected' : ''}>${esc(fShort(when(x)))}: ${esc(opp(x))}${x.result ? ` (${x.result.us}-${x.result.them})` : x === nextMatch() ? ' (sıradaki)' : ''}</option>`).join('');
   sel.onchange = () => { luId = sel.value; renderLineupView(); };
   $('#luSub').textContent = `GOLDNOVA – ${opp(m)}, ${fDate(when(m))} ${m.time}`;
+  if (luTab === 't') { tacticView(m); return; }
   const inLu = new Set(((m.lineup && m.lineup.slots) || []).filter(Boolean)), g = going(m), bench = g.filter(u => !inLu.has(u.id));
   const left = m.lineup ? `<div class="pitch">${pitchHTML(m, false).html}</div>` : `<div class="card empty-m"><b>Kadro henüz açıklanmadı</b><p class="sub">${isAdmin() ? 'Gelenlerden kadroyu kur, herkese bildirim gitsin.' : 'Yönetici kadroyu kurunca burada görünecek ve bildirim gelecek.'}</p>${isAdmin() ? '<button class="btn pri" id="luKur" style="margin-top:12px">Kadroyu kur</button>' : ''}</div>`;
   $('#luBody').innerHTML = `<div>${left}</div><div class="col">
@@ -333,13 +345,15 @@ async function renderHome() {
   } else {
     L += `<div class="card empty-m"><b>Planlanmış maç yok</b><p class="sub">Yeni maç eklendiğinde herkese bildirim ve e-posta gider.</p>${isAdmin() ? '<button class="btn pri" id="hNew" style="margin-top:12px">+ Maç oluştur</button>' : ''}</div>`;
   }
+  const todayPost = clubPosts().filter(p => (p.kind === 'matchday' || p.kind === 'hour') && Date.now() - p.at < 18 * 3600e3 && when(p.m).getTime() + 3 * 3600e3 > Date.now()).sort((a, b) => b.at - a.at)[0];
+  if (todayPost) L = L.replace('<div id="pushBan"></div>', '<div id="pushBan"></div>' + clubPostHTML(todayPost));
   if (last) L += lastCard(last);
   const vids = VIDEOS.slice(0, 4);
   let R = `<div class="card"><div class="sh"><h2 class="st">Son videolar</h2><a class="link" href="#feed">Akışa git</a></div>${vids.length ? `<div class="vgrid">${vids.map(thumb).join('')}</div>` : `<p class="sub">Henüz video yok. Golünü yükleyen ilk sen ol.</p><button class="btn pri" id="hUp" style="margin-top:10px">+ Video yükle</button>`}</div>`;
   const pend = pending(); if (isAdmin() && pend.length) R = `<div class="banner"><span>⚠️ ${pend.length} maçın sonucu girilmedi</span><button class="btn sm pri" data-match="${pend[0].id}">Sonucu gir</button></div>` + R;
   R += leaders(C);
   $('#homeL').innerHTML = L; $('#homeR').innerHTML = R;
-  tick(); bind($('#v-home'));
+  tick(); bind($('#v-home')); bindClub($('#v-home'));
   if (m) $('#rsvp').querySelectorAll('button').forEach(b => b.onclick = () => setRsvp(m, b.dataset.st));
   const hn = $('#hNew'); if (hn) hn.onclick = () => editMatch(null);
   const hu = $('#hUp'); if (hu) hu.onclick = () => upload();
@@ -555,6 +569,122 @@ function resultEditor(m) {
   draw();
 }
 
+/* ---------- TAKTİK TAHTASI ---------- */
+const TCOLS = ['#F7CF4A', '#FFFFFF', '#FF5A5A', '#4DD0FF'];
+let TAC = null, tacFor = null, tbM = 'move', tbC = TCOLS[0], tDrag = null, tCur = null, tCv = null, tCtx = null;
+function defTac(m) {
+  const fmt = Math.min(8, Math.max(5, m.format || 7)), forms = FORM[fmt], form = m.lineup && forms[m.lineup.form] ? m.lineup.form : Object.keys(forms)[0], sl = forms[form], t = [];
+  sl.forEach(([x, y], i) => { const p = byId(((m.lineup || {}).slots || [])[i]); t.push({ x, y: .92 - y * .38, team: 'A', gk: i === 0, l: p ? String(p.num || ini(p.name)) : String(i + 1), nm: p ? p.name.split(' ')[0] : '' }); });
+  sl.forEach(([x, y], i) => t.push({ x: 1 - x, y: .08 + y * .38, team: 'B', gk: i === 0, l: String(i + 1) }));
+  t.push({ x: .5, y: .5, team: 'ball', l: '' }); return { tokens: t, strokes: [] };
+}
+function tacticView(m) {
+  if (tacFor !== m.id) { TAC = m.tactic ? JSON.parse(JSON.stringify(m.tactic)) : defTac(m); tacFor = m.id; }
+  $('#luBody').innerHTML = `<canvas class="tbc" id="tb" aria-label="Taktik tahtası"></canvas><div class="col"><div class="card col" style="gap:10px">
+    <div class="row"><div class="seg" id="tbMode"><button data-m="move">Taşı</button><button data-m="draw">Çiz</button><button data-m="arrow">Ok</button></div><div class="sw" id="sw">${TCOLS.map(c => `<button style="background:${c}" data-c="${c}" aria-label="Kalem rengi"></button>`).join('')}</div></div>
+    <div class="row"><button class="btn" id="tbUndo">Geri al</button><button class="btn" id="tbClear">Çizimleri sil</button><button class="btn" id="tbLine">Kadrodan diz</button>${isAdmin() ? '<button class="btn pri" id="tbSave">Takımla paylaş</button>' : ''}</div>
+    <p class="sub">${isAdmin() ? '“Takımla paylaş” deyince tahta bu maç için herkese kaydedilir.' : m.tactic ? 'Yöneticinin paylaştığı taktik. Üzerinde oynayabilirsin, değişiklikler sadece sende kalır.' : 'Formaları ve topu sürükle, Ok modunda koşu ve pas yönlerini çiz.'}</p></div></div>`;
+  const syncUI = () => { $('#tbMode').querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', x.dataset.m === tbM)); $('#sw').querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', x.dataset.c === tbC)); };
+  $('#tbMode').querySelectorAll('button').forEach(b => b.onclick = () => { tbM = b.dataset.m; syncUI(); });
+  $('#sw').querySelectorAll('button').forEach(b => b.onclick = () => { tbC = b.dataset.c; syncUI(); }); syncUI();
+  $('#tbUndo').onclick = () => { TAC.strokes.pop(); drawTB(); };
+  $('#tbClear').onclick = () => { TAC.strokes = []; drawTB(); };
+  $('#tbLine').onclick = () => { TAC = defTac(m); drawTB(); };
+  const sv = $('#tbSave'); if (sv) sv.onclick = async () => { try { const j = await api(`/matches/${m.id}/tactic`, { method: 'POST', body: { tactic: TAC } }); upd(MATCHES, j.match); toast('Taktik takımla paylaşıldı'); } catch (e) { fail(e); } };
+  tCv = $('#tb'); tCtx = tCv.getContext('2d');
+  const pp = e => { const r = tCv.getBoundingClientRect(); return [Math.min(1, Math.max(0, (e.clientX - r.left) / r.width)), Math.min(1, Math.max(0, (e.clientY - r.top) / r.height))]; };
+  tCv.onpointerdown = e => { tCv.setPointerCapture(e.pointerId); const [x, y] = pp(e), r = tCv.getBoundingClientRect(), R = Math.max(14, r.width * .043) + 8;
+    if (tbM === 'move') { const t = TAC.tokens; for (let i = t.length - 1; i >= 0; i--) { if (Math.hypot((t[i].x - x) * r.width, (t[i].y - y) * r.height) < R) { tDrag = t[i]; break; } } } else tCur = { type: tbM, color: tbC, pts: [[x, y]] }; };
+  tCv.onpointermove = e => { if (!tDrag && !tCur) return; const p = pp(e); if (tDrag) { tDrag.x = p[0]; tDrag.y = p[1]; } else { const l = tCur.pts[tCur.pts.length - 1]; if (Math.hypot(p[0] - l[0], p[1] - l[1]) > .004) tCur.pts.push(p); } drawTB(); };
+  tCv.onpointerup = tCv.onpointercancel = () => { if (tCur && tCur.pts.length > 1) TAC.strokes.push(tCur); tCur = null; tDrag = null; drawTB(); };
+  requestAnimationFrame(sizeTB);
+}
+function sizeTB() { if (!tCv) return; const r = tCv.getBoundingClientRect(), d = window.devicePixelRatio || 1; if (!r.width) return; tCv.width = Math.round(r.width * d); tCv.height = Math.round(r.height * d); tCtx.setTransform(d, 0, 0, d, 0, 0); drawTB(); }
+window.addEventListener('resize', () => { if (curV === 'lineup' && luTab === 't') sizeTB(); });
+function drawTB() {
+  if (!tCv || !TAC) return; const r = tCv.getBoundingClientRect(), w = r.width, h = r.height, x = tCtx; if (!w) return;
+  for (let i = 0; i < 10; i++) { x.fillStyle = i % 2 ? '#2A7148' : '#2E7A4D'; x.fillRect(0, i * h / 10, w, h / 10 + 1); }
+  x.strokeStyle = 'rgba(255,255,255,.6)'; x.lineWidth = 1.5; const mg = w * .04; x.strokeRect(mg, mg, w - 2 * mg, h - 2 * mg);
+  x.beginPath(); x.moveTo(mg, h / 2); x.lineTo(w - mg, h / 2); x.stroke(); x.beginPath(); x.arc(w / 2, h / 2, w * .12, 0, Math.PI * 2); x.stroke();
+  x.strokeRect(w * .25, mg, w * .5, h * .13); x.strokeRect(w * .25, h - mg - h * .13, w * .5, h * .13);
+  TAC.strokes.concat(tCur ? [tCur] : []).forEach(st => { if (st.pts.length < 2) return; x.strokeStyle = st.color; x.lineWidth = 3.5; x.lineCap = 'round'; x.lineJoin = 'round'; if (st.type === 'arrow') x.setLineDash([10, 8]);
+    x.beginPath(); st.pts.forEach((p, i) => i ? x.lineTo(p[0] * w, p[1] * h) : x.moveTo(p[0] * w, p[1] * h)); x.stroke(); x.setLineDash([]);
+    if (st.type === 'arrow') { const a = st.pts[st.pts.length - 1], b = st.pts[Math.max(0, st.pts.length - 5)], an = Math.atan2((a[1] - b[1]) * h, (a[0] - b[0]) * w), L = 15; x.beginPath(); x.moveTo(a[0] * w, a[1] * h); x.lineTo(a[0] * w - L * Math.cos(an - .45), a[1] * h - L * Math.sin(an - .45)); x.lineTo(a[0] * w - L * Math.cos(an + .45), a[1] * h - L * Math.sin(an + .45)); x.closePath(); x.fillStyle = st.color; x.fill(); } });
+  const R = Math.max(14, w * .043), jp = new Path2D(JP);
+  TAC.tokens.forEach(k => { const px = k.x * w, py = k.y * h;
+    if (k.team === 'ball') { x.beginPath(); x.arc(px, py, R * .5, 0, Math.PI * 2); x.fillStyle = '#fff'; x.fill(); x.strokeStyle = '#1b1b1b'; x.lineWidth = 1.5; x.stroke(); x.beginPath(); x.arc(px, py, R * .17, 0, Math.PI * 2); x.fillStyle = '#1b1b1b'; x.fill(); return; }
+    const kit = k.team === 'B' ? OPP : k.gk ? GK : KIT, sz = R * 2.3; x.save(); x.translate(px - sz / 2, py - sz / 2); x.scale(sz / 100, sz / 100); x.shadowColor = 'rgba(0,0,0,.35)'; x.shadowBlur = 8; x.shadowOffsetY = 3;
+    x.fillStyle = kit.s; x.fill(jp); x.shadowColor = 'transparent'; x.strokeStyle = kit.x; x.lineWidth = 3; x.lineJoin = 'round'; x.stroke(jp);
+    x.fillStyle = kit.t; x.font = `800 ${k.l.length > 2 ? 24 : 34}px Archivo, sans-serif`; x.textAlign = 'center'; x.textBaseline = 'alphabetic'; x.fillText(k.l, 50, 71); x.restore();
+    if (k.nm) { x.font = `600 ${Math.round(R * .68)}px Archivo, sans-serif`; const tw = x.measureText(k.nm).width + 10; x.fillStyle = 'rgba(10,10,10,.65)'; x.fillRect(px - tw / 2, py + sz * .45, tw, R * .95); x.fillStyle = '#fff'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText(k.nm, px, py + sz * .45 + R * .5); } });
+}
+
+/* ---------- TAKIM PAYLAŞIMLARI (maç günü, son 1 saat, ilk 7, maç sonucu) ---------- */
+const MONTHS = ['OCAK', 'ŞUBAT', 'MART', 'NİSAN', 'MAYIS', 'HAZİRAN', 'TEMMUZ', 'AĞUSTOS', 'EYLÜL', 'EKİM', 'KASIM', 'ARALIK'];
+const DAYS = ['PAZAR', 'PAZARTESİ', 'SALI', 'ÇARŞAMBA', 'PERŞEMBE', 'CUMA', 'CUMARTESİ'];
+const up = t => String(t || '').toLocaleUpperCase('tr-TR');
+function clubPosts() {
+  const now = Date.now(), out = [];
+  MATCHES.forEach(m => {
+    const k = when(m).getTime(), created = new Date(m.created).getTime(), day = new Date(`${m.date}T09:00`).getTime();
+    const md = Math.max(day, created); if (md <= now && md < k) out.push({ kind: 'matchday', m, at: md });
+    const hr = k - 3600e3; if (hr <= now && created <= hr) out.push({ kind: 'hour', m, at: hr });
+    if (m.lineup && m.lineup.at) { const a = new Date(m.lineup.at).getTime(); if (a <= now) out.push({ kind: 'lineup', m, at: a }); }
+    if (m.result) out.push({ kind: 'result', m, at: new Date(m.result.at || m.created).getTime() });
+  });
+  return out.map(p => ({ ...p, id: `club-${p.kind}-${p.m.id}` }));
+}
+function cgHead() { return `<div class="cg-top"><img src="${LOGO}" alt=""><span>GOLDNOVA UNITED</span></div>`; }
+function clubCard(p) {
+  const m = p.m, d = when(m), dt = `${d.getDate()} ${MONTHS[d.getMonth()]}`, oppN = up(opp(m));
+  if (p.kind === 'matchday') return `<div class="cg cg-md">${cgHead()}<div class="cg-big">MAÇ<br>GÜNÜ</div>
+    <div class="cg-vs"><div class="cg-team"><img src="${LOGO}" alt=""><b>GOLDNOVA</b></div><i>VS</i><div class="cg-team"><span class="cg-j">${jersey(OPP)}</span><b>${esc(oppN)}</b></div></div>
+    <div class="cg-info"><div><small>${DAYS[d.getDay()]}</small><b>${dt}</b></div><div><small>SAAT</small><b>${esc(m.time)}</b></div><div><small>SAHA</small><b>${esc(up(m.saha))}</b></div></div>
+    <div class="cg-foot">#GOLDNOVA &nbsp; TOGETHER WE RISE</div></div>`;
+  if (p.kind === 'hour') return `<div class="cg cg-hr">${cgHead()}<div class="cg-num">1</div><div class="cg-big sm">SAAT<br>KALDI</div>
+    <div class="cg-line">GOLDNOVA <i>vs</i> ${esc(oppN)}</div><div class="cg-info"><div><small>BAŞLAMA</small><b>${esc(m.time)}</b></div><div><small>SAHA</small><b>${esc(up(m.saha))}</b></div></div>
+    <div class="cg-foot">KRAMPONLAR HAZIR MI? ⚽</div></div>`;
+  if (p.kind === 'lineup') {
+    const fmt = Math.min(8, Math.max(5, m.format || 7)), fm = FORM[fmt], sl = fm[m.lineup.form] || Object.values(fm)[0];
+    const rows = sl.map(([, , r], i) => { const u = byId(m.lineup.slots[i]); return u ? `<div><b>${esc(u.num || '')}</b><span>${esc(up(u.name))}</span><small>${r}</small></div>` : ''; }).join('');
+    const ids = new Set(m.lineup.slots.filter(Boolean)), subs = going(m).filter(u => !ids.has(u.id)).map(u => up(u.name.split(' ')[0]));
+    return `<div class="cg cg-lu">${cgHead()}<div class="cg-big sm">İLK ${sl.length}</div><div class="cg-sub">GOLDNOVA vs ${esc(oppN)} &nbsp;|&nbsp; ${esc(m.lineup.form)}</div>
+      <div class="cg-list">${rows}</div>${subs.length ? `<div class="cg-subs"><small>YEDEKLER</small> ${esc(subs.join(', '))}</div>` : ''}<div class="cg-foot">${dt} &nbsp; ${esc(m.time)} &nbsp; ${esc(up(m.saha))}</div></div>`;
+  }
+  const r = m.result, sc = Object.entries(r.goals || {}).map(([id, v]) => { const u = byId(id); return u ? up(u.name.split(' ')[0]) + (v > 1 ? ` (${v})` : '') : ''; }).filter(Boolean).join(', '), mvp = byId(r.mvp);
+  return `<div class="cg cg-res">${cgHead()}<div class="cg-ft">MAÇ SONUCU</div>
+    <div class="cg-score"><div class="cg-team"><img src="${LOGO}" alt=""><b>GOLDNOVA</b></div><div class="cg-sc">${r.us}<i>–</i>${r.them}</div><div class="cg-team"><span class="cg-j">${jersey(OPP)}</span><b>${esc(oppN)}</b></div></div>
+    <div class="cg-verdict">${r.us > r.them ? 'GALİBİYET' : r.us < r.them ? 'MAĞLUBİYET' : 'BERABERLİK'}</div>
+    ${sc ? `<div class="cg-scorers">⚽ ${esc(sc)}</div>` : ''}${mvp ? `<div class="cg-scorers">⭐ MAÇIN ADAMI: ${esc(up(mvp.name))}</div>` : ''}
+    <div class="cg-foot">${dt} &nbsp; ${esc(up(m.saha))}</div></div>`;
+}
+function clubCaption(p) {
+  const m = p.m, g = going(m).length;
+  if (p.kind === 'matchday') return `Maç günü! ⚽ Bugün saat ${m.time}’de ${m.saha}’da ${opp(m)} karşısındayız. ${g}/${m.format} kişi hazır, gelmeyi düşünen uygulamadan işaretlesin. #GOLDNOVA`;
+  if (p.kind === 'hour') return `Son 1 saat! ⏱ ${m.time}’de ${m.saha}’dayız. Kramponlar, formalar, su… Herkes sahada olsun. #GOLDNOVA`;
+  if (p.kind === 'lineup') return `${opp(m)} maçının ilk ${(m.lineup.slots || []).filter(Boolean).length}’si belli oldu. Taktik: ${m.lineup.form}. 📋 #GOLDNOVA`;
+  const r = m.result; return `Maç sonu: GOLDNOVA ${r.us} – ${r.them} ${opp(m)}. ${r.us > r.them ? 'Kazandık! 🏆' : r.us < r.them ? 'Bir dahakine kazanacağız. 💪' : 'Puanlar paylaşıldı.'} Golleri ve puanları uygulamada gör. #GOLDNOVA`;
+}
+function clubPostHTML(p) {
+  return `<article class="card post" id="post-${p.id}"><div class="post-h"><span class="av m" style="background:#0D0D0D"><img src="${LOGO}" alt="" style="object-fit:contain;padding:3px"></span><div class="n"><b>GOLDNOVA United <span class="vf" aria-label="Resmi hesap">✔</span></b><small>Takım hesabı, ${rel(new Date(p.at).toISOString())}</small></div></div>
+   <div class="cg-wrap">${clubCard(p)}</div><div class="post-b">${esc(clubCaption(p))}</div>
+   <div class="post-a"><button data-img="${p.id}" aria-label="Görseli paylaş">${IC.share}Görsel</button><button data-cwa="${p.id}" aria-label="WhatsApp">${IC.wa}WhatsApp</button><button data-match="${p.m.id}" style="margin-left:auto;color:var(--accent)">Maç detayı</button></div></article>`;
+}
+function loadH2C() { return window.html2canvas ? Promise.resolve() : new Promise((res, rej) => { const s = document.createElement('script'); s.src = 'https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js'; s.onload = res; s.onerror = () => rej(new Error('Görsel aracı yüklenemedi')); document.head.appendChild(s); }); }
+async function shareCard(el, name) {
+  try {
+    toast('Görsel hazırlanıyor…'); await loadH2C(); await document.fonts.ready;
+    const c = await window.html2canvas(el, { scale: 1080 / el.offsetWidth, backgroundColor: '#0D0D0D', useCORS: true, logging: false });
+    const blob = await new Promise(r => c.toBlob(r, 'image/png')); const f = new File([blob], name, { type: 'image/png' });
+    if (navigator.canShare && navigator.canShare({ files: [f] })) { try { await navigator.share({ files: [f], title: 'GOLDNOVA United' }); return; } catch (e) { if (e.name === 'AbortError') return; } }
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click(); a.remove(); toast('Görsel indirildi');
+  } catch (e) { fail(e); }
+}
+function bindClub(root) {
+  root.querySelectorAll('[data-img]').forEach(b => b.onclick = () => { const el = document.querySelector(`#post-${b.dataset.img} .cg`); if (el) shareCard(el, b.dataset.img + '.png'); });
+  root.querySelectorAll('[data-cwa]').forEach(b => b.onclick = () => { const p = clubPosts().find(x => x.id === b.dataset.cwa); if (p) shareText(`${clubCaption(p)}\n👉 ${BASE}#feed/${p.id}`); });
+}
+
 /* ---------- AKIŞ (videolar) ---------- */
 let feedF = 'all';
 const ytId = u => { const m = String(u || '').match(/(?:youtube\.com\/(?:watch\?v=|shorts\/|embed\/)|youtu\.be\/)([\w-]{11})/); return m ? m[1] : null; };
@@ -577,11 +707,13 @@ function postHTML(v) {
    <form class="cmt-in" data-cf="${v.id}"><input type="text" placeholder="Yorum yaz…" maxlength="400" aria-label="Yorum"><button class="btn sm pri">Gönder</button></form></article>`;
 }
 function renderFeed() {
-  $('#feedF').innerHTML = [['all', 'Tümü'], ...Object.entries(TAGS)].map(([k, l]) => `<button class="chip" data-f="${k}" aria-pressed="${feedF === k}">${l}</button>`).join('');
+  $('#feedF').innerHTML = [['all', 'Tümü'], ['club', 'Takım'], ...Object.entries(TAGS)].map(([k, l]) => `<button class="chip" data-f="${k}" aria-pressed="${feedF === k}">${l}</button>`).join('');
   $('#feedF').querySelectorAll('.chip').forEach(b => b.onclick = () => { feedF = b.dataset.f; renderFeed(); });
-  const list = VIDEOS.filter(v => feedF === 'all' || v.tag === feedF);
-  $('#feed').innerHTML = list.length ? list.map(postHTML).join('') : '<div class="empty">Henüz video yok. Gol, kurtarış ya da komik bir anı ilk sen paylaş.</div>';
-  bindFeed($('#feed'));
+  const vids = feedF === 'club' ? [] : VIDEOS.filter(v => feedF === 'all' || v.tag === feedF).map(v => ({ t: new Date(v.created).getTime(), h: () => postHTML(v) }));
+  const club = feedF === 'all' || feedF === 'club' ? clubPosts().map(p => ({ t: p.at, h: () => clubPostHTML(p) })) : [];
+  const list = [...vids, ...club].sort((a, b) => b.t - a.t);
+  $('#feed').innerHTML = list.length ? list.map(x => x.h()).join('') : '<div class="empty">Henüz paylaşım yok. Maç günü ve son 1 saat paylaşımları burada otomatik çıkar. Gol, kurtarış ya da komik bir anı da ilk sen paylaş.</div>';
+  bindFeed($('#feed')); bindClub($('#feed'));
 }
 function bindFeed(root) {
   root.querySelectorAll('[data-like]').forEach(b => b.onclick = async () => { try { const j = await api(`/videos/${b.dataset.like}/like`, { method: 'POST' }); upd(VIDEOS, j.video); redrawPost(j.video); } catch (e) { fail(e); } });
@@ -640,11 +772,12 @@ let posF = 'ALL', sqV = 'c', lbK = 'goals';
 const BADGES = [['👟', 'İlk maç', s => s.matches >= 1], ['🔟', '10 maç', s => s.matches >= 10], ['🏟', '25 maç', s => s.matches >= 25], ['⚽', 'İlk gol', s => s.goals >= 1], ['🎩', 'Hat-trick', s => s.hat >= 1], ['🎯', '10 asist', s => s.assists >= 10], ['🔥', '20 gol', s => s.goals >= 20], ['⭐', 'Maçın adamı', s => s.mvp >= 1], ['🏅', '3 kez MVP', s => s.mvp >= 3], ['🧤', 'Gol yemedi', s => s.cs >= 1], ['💎', '8+ puan', s => s.best >= 8]];
 function pcard(p, s) {
   return `<button class="pc" data-prof="${p.id}"><div class="pc-t ${p.pos === 'KL' ? 'gk' : ''}"><span class="pc-num">${esc(p.num || '')}</span>${avatar(p, 'xl')}<span class="pc-ovr"><b>${ovr(p)}</b><small>Güç</small></span></div>
-   <div class="pc-b"><div class="n">${esc(p.name)}${p.role === 'admin' ? '<span class="adm">Yön.</span>' : ''}</div><div class="p">${POS[p.pos]}${p.nick ? ', “' + esc(p.nick) + '”' : ''}</div>
+   <div class="pc-b"><div class="n">${esc(p.name)}${roleTag(p)}</div><div class="p">${POS[p.pos]}${p.nick ? ', “' + esc(p.nick) + '”' : ''}</div>
    <div class="pc-s"><span><b>${s.matches}</b>Maç</span><span><b>${p.pos === 'KL' ? s.cs : s.goals}</b>${p.pos === 'KL' ? 'Gol yemedi' : 'Gol'}</span><span>${rb(s.avg)}Puan</span></div></div></button>`;
 }
 function renderSquad() {
   const C = calc();
+  if (isAdmin() && !$('#sqAdd')) { $('#sqView').insertAdjacentHTML('beforebegin', '<button class="btn pri" id="sqAdd">+ Oyuncu ekle</button>'); $('#sqAdd').onclick = addGuest; }
   $('#sqSub').textContent = `${USERS.length} oyuncu`;
   $('#posF').innerHTML = [['ALL', 'Hepsi'], ...Object.entries(POS)].map(([k, l]) => `<button class="chip" data-p="${k}" aria-pressed="${posF === k}">${l}</button>`).join('');
   $('#posF').querySelectorAll('.chip').forEach(b => b.onclick = () => { posF = b.dataset.p; renderSquad(); });
@@ -669,7 +802,7 @@ function radar(p) {
 }
 function profile(id) {
   const p = byId(id); if (!p) return; const s = calc()[p.id], wr = s.matches ? Math.round(s.wins / s.matches * 100) : 0, mine = p.id === ME.id, vids = VIDEOS.filter(v => (v.scorer || v.userId) === p.id);
-  sheet(`<div class="ph ${p.pos === 'KL' ? 'gk' : ''}"><div class="ph-top"><span style="font-size:13px;opacity:.8">GOLDNOVA United${p.role === 'admin' ? ', yönetici' : ''}</span><button class="x" data-close aria-label="Kapat">×</button></div>
+  sheet(`<div class="ph ${p.pos === 'KL' ? 'gk' : ''}"><div class="ph-top"><span style="font-size:13px;opacity:.8">GOLDNOVA United${p.role === 'owner' ? ', kurucu' : p.role === 'admin' ? ', yönetici' : p.guest ? ', kayıtsız oyuncu' : ''}</span><button class="x" data-close aria-label="Kapat">×</button></div>
     <div class="ph-main"><span class="camw">${avatar(p, 'xxl')}${mine ? `<button class="cam" id="pCam" aria-label="Fotoğraf değiştir">${IC.cam}</button>` : ''}</span>
     <div><div class="ph-n">${esc(p.name)}</div><div class="ph-m">${POS[p.pos]}, ${esc(p.foot)} ayak${p.nick ? '<br>“' + esc(p.nick) + '”' : ''}</div><div style="margin-top:8px;display:flex;gap:6px;align-items:center">${rb(s.avg)}<span style="font-size:12.5px;opacity:.8">ortalama puan</span></div></div></div>
     <span class="ph-num">${esc(p.num || '')}</span></div>
@@ -687,18 +820,28 @@ function profile(id) {
     const pa = b.querySelector('#pAdm'); if (pa) pa.onclick = () => adminPlayer(p);
   });
 }
+function addGuest() {
+  sheet(`<p class="sub" style="margin-bottom:12px">Uygulamaya kayıt olmayan oyuncuları buradan ekle. Maçlara, kadroya ve istatistiklere dahil olurlar. Bildirim almazlar.</p>
+   <form class="form" id="gf"><label class="f full">Ad soyad<input type="text" name="name" maxlength="30" required placeholder="Örn. Ahmet Yılmaz"></label>
+   <label class="f">Mevki<select name="pos">${Object.entries(POS).map(([k, l]) => `<option value="${k}" ${k === 'OS' ? 'selected' : ''}>${l}</option>`).join('')}</select></label>
+   <label class="f">Forma no<input type="number" name="num" min="0" max="99"></label>
+   <label class="f full">Ayak<select name="foot"><option>Sağ</option><option>Sol</option><option>İki ayak</option></select></label>
+   <div class="full row" style="justify-content:flex-end;margin-top:6px"><button class="btn" type="button" data-close>Vazgeç</button><button class="btn pri" type="submit">Kadroya ekle</button></div></form>`,
+  b => { b.querySelector('[data-close]').onclick = () => dlg.close(); b.querySelector('#gf').onsubmit = async e => { e.preventDefault(); const btn = e.target.querySelector('[type=submit]'); btn.disabled = true; try { const j = await api('/users', { method: 'POST', body: Object.fromEntries(new FormData(e.target)) }); USERS.push(j.user); toast(j.user.name + ' kadroya eklendi'); profile(j.user.id); } catch (er) { fail(er); btn.disabled = false; } }; }, 'Oyuncu ekle');
+}
 function adminPlayer(p) {
   const st2 = { ...p.stats };
   sheet(`<div class="form"><label class="f">Mevki<select id="aP">${Object.entries(POS).map(([k, l]) => `<option value="${k}" ${k === p.pos ? 'selected' : ''}>${l}</option>`).join('')}</select></label>
    <label class="f">Forma no<input type="number" id="aN" min="0" max="99" value="${esc(p.num)}"></label>
-   ${p.id !== ME.id ? `<label class="f full">Rol<select id="aR"><option value="member" ${p.role !== 'admin' ? 'selected' : ''}>Üye</option><option value="admin" ${p.role === 'admin' ? 'selected' : ''}>Yönetici (maç ekler, sonuç girer)</option></select></label>` : ''}</div>
+   ${isOwner() && p.id !== ME.id && !p.guest && p.role !== 'owner' ? `<label class="f full">Rol<select id="aR"><option value="member" ${p.role !== 'admin' ? 'selected' : ''}>Üye</option><option value="admin" ${p.role === 'admin' ? 'selected' : ''}>Yönetici (maç ekler, sonuç ve kadro girer)</option></select><span class="muted" style="font-weight:500">Yöneticiler senin rolünü değiştiremez, sadece sen yönetici atayıp çıkarabilirsin.</span></label>` : ''}
+   ${p.guest ? `<label class="f full">Ad soyad<input type="text" id="aName" value="${esc(p.name)}" maxlength="30"></label>` : ''}</div>
    <div class="sec"><h4>Özellikler</h4><div style="display:flex;flex-direction:column;gap:5px">${STATS.map(([k, l]) => `<div class="sin"><span>${l}</span><input type="range" min="30" max="99" value="${st2[k]}" data-k="${k}" aria-label="${l}"><output id="o-${k}">${st2[k]}</output></div>`).join('')}</div></div>
-   <div class="row" style="justify-content:space-between;margin-top:16px">${p.id !== ME.id ? '<button class="btn ghost danger" id="aDel">Takımdan çıkar</button>' : '<span></span>'}<div class="row"><button class="btn" id="aBack">Geri</button><button class="btn pri" id="aOk">Kaydet</button></div></div>`,
+   <div class="row" style="justify-content:space-between;margin-top:16px">${p.id !== ME.id && p.role !== 'owner' && (p.role === 'member' || isOwner()) ? '<button class="btn ghost danger" id="aDel">Takımdan çıkar</button>' : '<span></span>'}<div class="row"><button class="btn" id="aBack">Geri</button><button class="btn pri" id="aOk">Kaydet</button></div></div>`,
   b => {
     b.querySelectorAll('input[type=range]').forEach(i => i.oninput = () => { st2[i.dataset.k] = +i.value; b.querySelector('#o-' + i.dataset.k).textContent = i.value; });
     b.querySelector('#aBack').onclick = () => profile(p.id);
-    b.querySelector('#aOk').onclick = async () => { const r = b.querySelector('#aR'); try { const j = await api('/users/' + p.id, { method: 'PUT', body: { pos: b.querySelector('#aP').value, num: b.querySelector('#aN').value, stats: st2, role: r ? r.value : undefined } }); upd(USERS, j.user); if (j.user.id === ME.id) ME = { ...ME, ...j.user }; toast('Oyuncu güncellendi'); profile(p.id); } catch (e) { fail(e); } };
-    const d = b.querySelector('#aDel'); if (d) d.onclick = async () => { if (!confirm(p.name + ' takımdan çıkarılsın mı? Hesabı silinir.')) return; try { await api('/users/' + p.id, { method: 'DELETE' }); USERS = USERS.filter(u => u.id !== p.id); dlg.close(); toast('Oyuncu çıkarıldı'); } catch (e) { fail(e); } };
+    b.querySelector('#aOk').onclick = async () => { const r = b.querySelector('#aR'); try { const j = await api('/users/' + p.id, { method: 'PUT', body: { pos: b.querySelector('#aP').value, num: b.querySelector('#aN').value, stats: st2, role: r ? r.value : undefined, name: b.querySelector('#aName') ? b.querySelector('#aName').value : undefined } }); upd(USERS, j.user); if (j.user.id === ME.id) ME = { ...ME, ...j.user }; toast('Oyuncu güncellendi'); profile(p.id); } catch (e) { fail(e); } };
+    const d = b.querySelector('#aDel'); if (d) d.onclick = async () => { if (!confirm(p.name + ' takımdan çıkarılsın mı?' + (p.guest ? '' : ' Profili silinir.'))) return; try { await api('/users/' + p.id, { method: 'DELETE' }); USERS = USERS.filter(u => u.id !== p.id); dlg.close(); toast('Oyuncu çıkarıldı'); } catch (e) { fail(e); } };
   }, 'Oyuncuyu düzenle');
 }
 function pickPhoto() {

@@ -634,29 +634,29 @@ function clubPosts() {
   });
   return out.map(p => ({ ...p, id: `club-${p.kind}-${p.m.id}` }));
 }
-function cgHead() { return `<div class="cg-top"><img src="${LOGO}" alt=""><span>GOLDNOVA UNITED</span></div>`; }
+const SHIELD = l => `<svg viewBox="0 0 100 106" aria-hidden="true"><path d="M8 10 Q50 -4 92 10 V56 C92 82 72 96 50 104 C28 96 8 82 8 56 Z" fill="#fff"/><text x="50" y="68" text-anchor="middle" font-family="Oswald, Anton, sans-serif" font-weight="700" font-size="44" fill="#8B0F1A">${esc(l)}</text></svg>`;
+function tpCrests(m, mid) { return `<div class="tp-crests"><img src="${LOGO}" alt="GOLDNOVA">${mid || ''}${SHIELD(up(opp(m)).slice(0, 1) || 'R')}</div>`; }
+const dd = n => String(n).padStart(2, '0');
 function clubCard(p) {
-  const m = p.m, d = when(m), dt = `${d.getDate()} ${MONTHS[d.getMonth()]}`, oppN = up(opp(m));
-  if (p.kind === 'matchday') return `<div class="cg cg-md">${cgHead()}<div class="cg-big">MAÇ<br>GÜNÜ</div>
-    <div class="cg-vs"><div class="cg-team"><img src="${LOGO}" alt=""><b>GOLDNOVA</b></div><i>VS</i><div class="cg-team"><span class="cg-j">${jersey(OPP)}</span><b>${esc(oppN)}</b></div></div>
-    <div class="cg-info"><div><small>${DAYS[d.getDay()]}</small><b>${dt}</b></div><div><small>SAAT</small><b>${esc(m.time)}</b></div><div><small>SAHA</small><b>${esc(up(m.saha))}</b></div></div>
-    <div class="cg-foot">#GOLDNOVA &nbsp; TOGETHER WE RISE</div></div>`;
-  if (p.kind === 'hour') return `<div class="cg cg-hr">${cgHead()}<div class="cg-num">1</div><div class="cg-big sm">SAAT<br>KALDI</div>
-    <div class="cg-line">GOLDNOVA <i>vs</i> ${esc(oppN)}</div><div class="cg-info"><div><small>BAŞLAMA</small><b>${esc(m.time)}</b></div><div><small>SAHA</small><b>${esc(up(m.saha))}</b></div></div>
-    <div class="cg-foot">KRAMPONLAR HAZIR MI? ⚽</div></div>`;
+  const m = p.m, d = when(m), dot = `${dd(d.getDate())}.${dd(d.getMonth() + 1)}.${d.getFullYear()}`, tm = String(m.time).replace(':', '.'), oppN = up(opp(m));
+  const venue = `<div class="tp-venue"><b>${esc(up(m.saha))}</b>${m.adres ? `<small>${esc(up(m.adres))}</small>` : ''}</div>`;
+  if (p.kind === 'matchday') return `<div class="cg tp" style="background-image:url(./templates/mac-gunu.jpg)">
+    <div class="tp-date">${dot} &nbsp;|&nbsp; ${tm}</div>${tpCrests(m)}<div class="tp-vs">GOLDNOVA VS ${esc(oppN)}</div>${venue}</div>`;
+  if (p.kind === 'hour') return `<div class="cg tp" style="background-image:url(./templates/bos.jpg)"><div class="tp-h">SON 1 SAAT</div>
+    <div class="tp-date">BAŞLAMA &nbsp;|&nbsp; ${tm}</div>${tpCrests(m)}<div class="tp-vs">GOLDNOVA VS ${esc(oppN)}</div>${venue}</div>`;
   if (p.kind === 'lineup') {
     const fmt = Math.min(8, Math.max(5, m.format || 7)), fm = FORM[fmt], sl = fm[m.lineup.form] || Object.values(fm)[0];
-    const rows = sl.map(([, , r], i) => { const u = byId(m.lineup.slots[i]); return u ? `<div><b>${esc(u.num || '')}</b><span>${esc(up(u.name))}</span><small>${r}</small></div>` : ''; }).join('');
+    const rows = sl.map(([, , r], i) => { const u = byId(m.lineup.slots[i]); return u ? `<div><b>${esc(u.num || '–')}</b><span>${esc(up(u.name))}</span><small>${r}</small></div>` : ''; }).join('');
     const ids = new Set(m.lineup.slots.filter(Boolean)), subs = going(m).filter(u => !ids.has(u.id)).map(u => up(u.name.split(' ')[0]));
-    return `<div class="cg cg-lu">${cgHead()}<div class="cg-big sm">İLK ${sl.length}</div><div class="cg-sub">GOLDNOVA vs ${esc(oppN)} &nbsp;|&nbsp; ${esc(m.lineup.form)}</div>
-      <div class="cg-list">${rows}</div>${subs.length ? `<div class="cg-subs"><small>YEDEKLER</small> ${esc(subs.join(', '))}</div>` : ''}<div class="cg-foot">${dt} &nbsp; ${esc(m.time)} &nbsp; ${esc(up(m.saha))}</div></div>`;
+    return `<div class="cg tp" style="background-image:url(./templates/bos.jpg)"><div class="tp-h">İLK ${sl.length}</div>
+      <div class="tp-date">VS ${esc(oppN)} &nbsp;|&nbsp; ${esc(m.lineup.form)}</div><div class="tp-list">${rows}</div>
+      <div class="tp-venue"><b class="nw">${dd(d.getDate())}.${dd(d.getMonth() + 1)} &nbsp;|&nbsp; ${tm} &nbsp;|&nbsp; ${esc(up(m.saha))}</b>${subs.length ? `<small>YEDEKLER: ${esc(subs.join(', '))}</small>` : ''}</div></div>`;
   }
   const r = m.result, sc = Object.entries(r.goals || {}).map(([id, v]) => { const u = byId(id); return u ? up(u.name.split(' ')[0]) + (v > 1 ? ` (${v})` : '') : ''; }).filter(Boolean).join(', '), mvp = byId(r.mvp);
-  return `<div class="cg cg-res">${cgHead()}<div class="cg-ft">MAÇ SONUCU</div>
-    <div class="cg-score"><div class="cg-team"><img src="${LOGO}" alt=""><b>GOLDNOVA</b></div><div class="cg-sc">${r.us}<i>–</i>${r.them}</div><div class="cg-team"><span class="cg-j">${jersey(OPP)}</span><b>${esc(oppN)}</b></div></div>
-    <div class="cg-verdict">${r.us > r.them ? 'GALİBİYET' : r.us < r.them ? 'MAĞLUBİYET' : 'BERABERLİK'}</div>
-    ${sc ? `<div class="cg-scorers">⚽ ${esc(sc)}</div>` : ''}${mvp ? `<div class="cg-scorers">⭐ MAÇIN ADAMI: ${esc(up(mvp.name))}</div>` : ''}
-    <div class="cg-foot">${dt} &nbsp; ${esc(up(m.saha))}</div></div>`;
+  return `<div class="cg tp" style="background-image:url(./templates/bos.jpg)"><div class="tp-h">MAÇ SONUCU</div>
+    <div class="tp-date">${r.us > r.them ? 'GALİBİYET' : r.us < r.them ? 'MAĞLUBİYET' : 'BERABERLİK'} &nbsp;|&nbsp; ${dot}</div>${tpCrests(m, `<div class="tp-score">${r.us}<i>-</i>${r.them}</div>`)}
+    <div class="tp-vs">GOLDNOVA VS ${esc(oppN)}</div>
+    <div class="tp-venue">${sc ? `<b>⚽ ${esc(sc)}</b>` : `<b>${esc(up(m.saha))}</b>`}${mvp ? `<small>MAÇIN ADAMI: ${esc(up(mvp.name))}</small>` : ''}</div></div>`;
 }
 function clubCaption(p) {
   const m = p.m, g = going(m).length;

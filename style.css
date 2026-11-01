@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Anton&family=Archivo+Narrow:wght@500;700&family=Montserrat:wght@500;600;700&family=Oswald:wght@600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Anton&family=Archivo+Narrow:wght@500;700&family=Montserrat:wght@500;600;700&family=Oswald:wght@600;700&family=Cinzel:wght@700;800&display=swap');
 
 :root{
   --bg:#F1F1F3;--surface:#FFFFFF;--s2:#F5F5F7;--ink:#131315;--muted:#6B6B74;--line:#E3E3E8;
@@ -513,3 +513,39 @@ a.link{text-decoration:none}
 .tp-list small{font-weight:600;font-size:2.8cqw;letter-spacing:.4cqw;opacity:.8}
 .tp-venue b.nw{white-space:nowrap;font-size:3.5cqw;letter-spacing:.6cqw}
 .tp-date{white-space:nowrap}
+
+/* ---- formalar (FIFA forma ekranı) ---- */
+.kitshow{background:radial-gradient(90% 80% at 50% 0%,rgba(212,175,55,.16),transparent 60%),linear-gradient(180deg,#151515,#0b0b0b);border-color:#2a2a2a;color:#fff;margin-bottom:14px}
+.kitshow .st{color:#fff}
+.kits3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.kits3 figure{margin:0;text-align:center;position:relative}
+.kits3 figure::after{content:"";position:absolute;left:15%;right:15%;bottom:44px;height:10px;border-radius:50%;background:radial-gradient(closest-side,rgba(0,0,0,.6),transparent);z-index:0}
+.kits3 svg{width:100%;height:auto;position:relative;z-index:1;filter:drop-shadow(0 10px 14px rgba(0,0,0,.55))}
+.kits3 figcaption{margin-top:6px;line-height:1.2}
+.kits3 figcaption b{display:block;font-size:13.5px}.kits3 figcaption small{color:#a8a8b0;font-size:11.5px}
+.kitstage{position:relative;border-radius:18px;padding:18px 10px 14px;background:radial-gradient(70% 60% at 50% 30%,rgba(212,175,55,.22),transparent 65%),radial-gradient(120% 80% at 50% 100%,#3a0710,#0D0D0D 70%);display:flex;justify-content:center}
+.kit-wrap{width:min(320px,90%)}
+.kit-wrap svg.kitsvg{width:100%;height:auto;filter:drop-shadow(0 16px 22px rgba(0,0,0,.6))}
+.fut-one{width:min(260px,80%);margin:0 auto}
+/* ---- FUT kartları ---- */
+.futs{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:14px}
+.futb{border:none;background:none;padding:0;transition:transform .15s}
+.futb:hover{transform:translateY(-3px) scale(1.01)}
+.fut{position:relative;aspect-ratio:300/420;container-type:inline-size;color:#2b2105;font-family:'Oswald','Archivo Narrow',sans-serif;filter:drop-shadow(0 8px 14px rgba(0,0,0,.35))}
+.fut-silver{color:#1f2429}.fut-bronze{color:#2e1707}.fut-nova{color:#F3D982}
+.fut-bg{position:absolute;inset:0;width:100%;height:100%}
+.fut-l{position:absolute;left:11%;top:12%;display:flex;flex-direction:column;align-items:center;gap:1.5cqw;z-index:2;line-height:1}
+.fut-l b{font-size:17cqw;font-weight:700}
+.fut-l span{font-size:7.2cqw;font-weight:600;letter-spacing:.3cqw}
+.fut-fl svg{width:10cqw;height:auto;display:block;border-radius:1px;box-shadow:0 0 0 .3cqw rgba(0,0,0,.15)}
+.fut-cr{width:10cqw;height:auto}
+.fut-face{position:absolute;left:28%;right:5%;top:8%;height:46%;display:flex;align-items:flex-end;justify-content:center;z-index:1}
+.fut-ph{width:78%;aspect-ratio:1;object-fit:cover;border-radius:50% 50% 8% 8%;-webkit-mask-image:linear-gradient(180deg,#000 70%,transparent);mask-image:linear-gradient(180deg,#000 70%,transparent)}
+.fut-kit{width:92%}.fut-kit svg{width:100%;height:auto;filter:drop-shadow(0 2cqw 3cqw rgba(0,0,0,.35))}
+.fut-n{position:absolute;left:8%;right:8%;top:55.5%;text-align:center;font-size:9.5cqw;font-weight:700;letter-spacing:.3cqw;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;border-bottom:.4cqw solid currentColor;padding-bottom:1cqw;opacity:.95;z-index:2}
+.fut-s{position:absolute;left:14%;right:14%;top:68%;display:grid;grid-template-columns:1fr 1fr;column-gap:8cqw;row-gap:.6cqw;z-index:2}
+.fut-s div{display:flex;gap:2.2cqw;align-items:baseline;font-size:7cqw;line-height:1.15}
+.fut-s b{font-weight:700;min-width:8cqw;text-align:right}
+.fut-s span{font-weight:500;opacity:.85}
+.fut-f{position:absolute;left:0;right:0;top:88.5%;text-align:center;font-size:4cqw;letter-spacing:.3cqw;font-weight:600;opacity:.7;z-index:2}
+.fut-nova .fut-n{border-color:#D4AF37}

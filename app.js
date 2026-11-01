@@ -43,7 +43,57 @@ function rel(iso) { const s = (Date.now() - new Date(iso)) / 1000; if (s < 60) r
 function rb(v) { if (v == null) return '<i class="rb rn">–</i>'; const c = v >= 8 ? 'r8' : v >= 7 ? 'r7' : v >= 6 ? 'r6' : 'r5'; return `<i class="rb ${c}">${v.toFixed(1)}</i>`; }
 function jersey(k, label = '') {
   const L = String(label), fs = L.length > 2 ? 24 : L.length > 1 ? 33 : 37;
-  return `<svg viewBox="0 0 100 100" aria-hidden="true"><path d="${JP}" fill="${k.s}" stroke="${k.x}" stroke-width="2.5" stroke-linejoin="round"/><path d="M41 5 L50 17 L59 5" fill="none" stroke="${k.x}" stroke-width="4.5" stroke-linejoin="round"/><path d="M29 39 V95 M71 39 V95" stroke="${k.x}" stroke-width="2.5"/><path d="M84 43 L94 25 M16 43 L6 25" stroke="${k.x}" stroke-width="5"/>${L ? `<text x="50" y="${fs > 30 ? 73 : 69}" text-anchor="middle" font-family="Archivo, Arial Narrow, sans-serif" font-stretch="72%" font-weight="800" font-size="${fs}" fill="${k.t}">${esc(L)}</text>` : ''}</svg>`;
+  return `<svg viewBox="0 0 100 100" aria-hidden="true"><defs><linearGradient id="jsd" x1="0" x2="1"><stop offset="0" stop-color="#000" stop-opacity=".38"/><stop offset=".28" stop-color="#000" stop-opacity="0"/><stop offset=".72" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".38"/></linearGradient><linearGradient id="jhl" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".22"/><stop offset=".45" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".2"/></linearGradient></defs>
+  <path d="${JP}" fill="${k.s}"/><path d="${JP}" fill="url(#jsd)"/><path d="${JP}" fill="url(#jhl)"/><path d="${JP}" fill="none" stroke="${k.x}" stroke-width="2" stroke-linejoin="round" opacity=".9"/>
+  <path d="M41 5 L50 17 L59 5" fill="none" stroke="${k.x}" stroke-width="4.5" stroke-linejoin="round"/><path d="M29 39 V95 M71 39 V95" stroke="${k.x}" stroke-width="2.2"/><path d="M84 43 L94 25 M16 43 L6 25" stroke="${k.x}" stroke-width="5"/><path d="M80 38.5 L89 22 M20 38.5 L11 22" stroke="${k.x}" stroke-width="1.6"/>
+  ${L ? `<text x="50" y="${fs > 30 ? 73 : 69}" text-anchor="middle" font-family="Cinzel, Oswald, Georgia, serif" font-weight="800" font-size="${fs}" fill="${k.t}" stroke="rgba(0,0,0,.25)" stroke-width=".8" paint-order="stroke">${esc(L)}</text>` : ''}</svg>`;
+}
+/* Gerçekçi forma çizimi (ön/arka), FIFA forma ekranı tarzı */
+let kitN = 0;
+const KIT_BODY = 'M96 30 C112 22 127 20 150 20 C173 20 188 22 204 30 L262 52 C276 58 284 70 287 84 L299 140 L251 157 L239 113 L237 300 C237 309 231 313 222 313 L78 313 C69 313 63 309 63 300 L61 113 L49 157 L1 140 L13 84 C16 70 24 58 38 52 Z';
+function kitSVG(o = {}) {
+  const id = 'kt' + (++kitN), gk = !!o.gk, base = gk ? '#151515' : '#7C0D17', mid = gk ? '#2a2a2a' : '#A0182A', gold = '#D4AF37', goldD = '#9C7A1C';
+  const nm = up(o.name || ''), num = String(o.num || '');
+  const front = `<image href="${LOGO}" x="180" y="64" width="34" height="46" preserveAspectRatio="xMidYMid meet"/>
+    <text x="150" y="168" text-anchor="middle" font-family="Cinzel, Georgia, serif" font-weight="700" font-size="25" fill="url(#${id}g)" textLength="150" lengthAdjust="spacingAndGlyphs">GOLDNOVA</text>
+    <path d="M86 185 H104 M196 185 H214" stroke="${gold}" stroke-width="1.4"/><text x="150" y="189" text-anchor="middle" font-family="Cinzel, Georgia, serif" font-weight="700" font-size="12" fill="${gold}" letter-spacing="4">UNITED</text>
+    ${o.num && o.chest ? `<text x="150" y="268" text-anchor="middle" font-family="Cinzel, Georgia, serif" font-weight="800" font-size="56" fill="url(#${id}g)">${esc(num)}</text>` : ''}
+    <path d="M118 24 L150 72 L182 24" fill="none" stroke="${gold}" stroke-width="8" stroke-linejoin="round"/><path d="M124 23 L150 62 L176 23 Q150 30 124 23 Z" fill="#000" opacity=".45"/>`;
+  const back = `<path d="M116 25 Q150 42 184 25" fill="none" stroke="${gold}" stroke-width="8" stroke-linecap="round"/>
+    <text x="150" y="100" text-anchor="middle" font-family="Cinzel, Georgia, serif" font-weight="700" font-size="${nm.length > 10 ? 20 : 25}" fill="url(#${id}g)" letter-spacing="2">${esc(nm)}</text>
+    <text x="150" y="232" text-anchor="middle" font-family="Cinzel, Georgia, serif" font-weight="800" font-size="${num.length > 1 ? 118 : 128}" fill="url(#${id}g)" stroke="rgba(0,0,0,.35)" stroke-width="2" paint-order="stroke">${esc(num)}</text>
+    <text x="150" y="292" text-anchor="middle" font-family="Cinzel, Georgia, serif" font-weight="700" font-size="9" fill="${gold}" opacity=".75" letter-spacing="3">TOGETHER WE RISE</text>`;
+  return `<svg viewBox="0 0 300 320" class="kitsvg" role="img" aria-label="${gk ? 'Kaleci' : 'GOLDNOVA'} forması${o.back ? ', ' + esc(nm) + ' ' + esc(num) : ''}">
+   <defs><clipPath id="${id}c"><path d="${KIT_BODY}"/></clipPath>
+    <linearGradient id="${id}b" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${mid}"/><stop offset="1" stop-color="${base}"/></linearGradient>
+    <linearGradient id="${id}s" x1="0" x2="1"><stop offset="0" stop-color="#000" stop-opacity=".55"/><stop offset=".22" stop-color="#000" stop-opacity="0"/><stop offset=".5" stop-color="#fff" stop-opacity=".07"/><stop offset=".78" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".55"/></linearGradient>
+    <linearGradient id="${id}g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#F5DA7A"/><stop offset=".55" stop-color="${gold}"/><stop offset="1" stop-color="${goldD}"/></linearGradient>
+    <pattern id="${id}p" width="14" height="14" patternUnits="userSpaceOnUse" patternTransform="rotate(${gk ? 35 : -30})"><rect width="14" height="14" fill="none"/><rect width="5" height="14" fill="#fff" opacity="${gk ? .05 : .035}"/></pattern></defs>
+   <g clip-path="url(#${id}c)"><rect width="300" height="320" fill="url(#${id}b)"/><rect width="300" height="320" fill="url(#${id}p)"/>
+    <path d="M0 132 L52 150 L48 156 L0 140 Z M300 132 L248 150 L252 156 L300 140 Z" fill="${gold}"/><path d="M0 122 L55 141 L54 145 L0 126 Z M300 122 L245 141 L246 145 L300 126 Z" fill="${gold}" opacity=".85"/>
+    <path d="M67 112 V313 M233 112 V313" stroke="${gold}" stroke-width="5"/>
+    ${gk ? `<path d="M61 113 L75 113 L75 313 L61 313 Z M239 113 L225 113 L225 313 L239 313 Z" fill="${gold}" opacity=".9"/>` : ''}
+    ${o.back ? back : front}
+    <rect width="300" height="320" fill="url(#${id}s)"/></g>
+   <path d="${KIT_BODY}" fill="none" stroke="#000" stroke-opacity=".35" stroke-width="1.5"/></svg>`;
+}
+const FLAG_TR = '<svg viewBox="0 0 30 20" aria-label="Türkiye"><rect width="30" height="20" fill="#E30A17"/><circle cx="11" cy="10" r="5" fill="#fff"/><circle cx="12.3" cy="10" r="4" fill="#E30A17"/><path d="M16.6 10 l3.7 -1.2 -2.3 3.2 0 -4 2.3 3.2z" fill="#fff"/></svg>';
+/* FIFA Ultimate Team tarzı oyuncu kartı */
+function futCard(p, s) {
+  const o = ovr(p), tier = o >= 85 ? 'nova' : o >= 75 ? 'gold' : o >= 65 ? 'silver' : 'bronze';
+  const G = { nova: ['#2a0306', '#7C0D17', '#0D0D0D'], gold: ['#FBE9A6', '#E2BE55', '#A47A1E'], silver: ['#F2F4F6', '#C8CED4', '#8A939B'], bronze: ['#F1C9A0', '#C8875A', '#7E4A26'] }[tier];
+  const id = 'fc' + (++kitN), face = p.photo ? `<img src="${esc(p.photo)}" alt="" class="fut-ph">` : `<div class="fut-kit">${kitSVG({ gk: p.pos === 'KL', back: true, name: p.name.split(' ')[0], num: p.num || ini(p.name) })}</div>`;
+  return `<div class="fut fut-${tier}">
+   <svg class="fut-bg" viewBox="0 0 300 420" preserveAspectRatio="none" aria-hidden="true"><defs><linearGradient id="${id}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${G[0]}"/><stop offset=".5" stop-color="${G[1]}"/><stop offset="1" stop-color="${G[2]}"/></linearGradient>
+    <pattern id="${id}p" width="16" height="16" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="2" height="16" fill="#fff" opacity=".08"/></pattern></defs>
+    <path d="M150 4 C190 18 240 14 286 10 L296 60 L296 340 C296 372 270 386 150 416 C30 386 4 372 4 340 L4 60 L14 10 C60 14 110 18 150 4 Z" fill="url(#${id})"/>
+    <path d="M150 4 C190 18 240 14 286 10 L296 60 L296 340 C296 372 270 386 150 416 C30 386 4 372 4 340 L4 60 L14 10 C60 14 110 18 150 4 Z" fill="url(#${id}p)"/>
+    <path d="M150 16 C188 28 234 25 276 21 L284 64 L284 336 C284 362 262 374 150 402 C38 374 16 362 16 336 L16 64 L24 21 C66 25 112 28 150 16 Z" fill="none" stroke="${tier === 'nova' ? '#D4AF37' : 'rgba(0,0,0,.18)'}" stroke-width="2"/></svg>
+   <div class="fut-l"><b>${o}</b><span>${p.pos}</span><i class="fut-fl">${FLAG_TR}</i><img src="${LOGO}" alt="" class="fut-cr"></div>
+   <div class="fut-face">${face}</div>
+   <div class="fut-n">${esc(up(p.nick || p.name.split(' ')[0]))}</div>
+   <div class="fut-s">${STATS.map(([k, l]) => `<div><b>${p.stats[k]}</b><span>${l}</span></div>`).join('')}</div>
+   <div class="fut-f">${s ? `${s.matches} MAÇ · ${s.goals} GOL${s.avg != null ? ' · ' + s.avg.toFixed(1) : ''}` : ''}</div></div>`;
 }
 const avatar = (p, size) => `<span class="av ${size}">${p && p.photo ? `<img src="${esc(p.photo)}" alt="" loading="lazy">` : esc(ini(p ? p.name : '?'))}</span>`;
 function toast(t) { const el = $('#toast'); el.textContent = t; el.classList.add('on'); clearTimeout(toast.t); toast.t = setTimeout(() => el.classList.remove('on'), 2400); }
@@ -781,9 +831,15 @@ function renderSquad() {
   $('#sqSub').textContent = `${USERS.length} oyuncu`;
   $('#posF').innerHTML = [['ALL', 'Hepsi'], ...Object.entries(POS)].map(([k, l]) => `<button class="chip" data-p="${k}" aria-pressed="${posF === k}">${l}</button>`).join('');
   $('#posF').querySelectorAll('.chip').forEach(b => b.onclick = () => { posF = b.dataset.p; renderSquad(); });
+  if (!$('#sqView [data-v="f"]')) $('#sqView').insertAdjacentHTML('afterbegin', '<button data-v="f">FUT</button>');
   $('#sqView').querySelectorAll('button').forEach(b => { b.setAttribute('aria-pressed', b.dataset.v === sqV); b.onclick = () => { sqV = b.dataset.v; renderSquad(); }; });
   const list = USERS.filter(p => posF === 'ALL' || p.pos === posF);
-  $('#squad').innerHTML = sqV === 'c' ? `<div class="pcs">${[...list].sort((a, b) => ovr(b) - ovr(a)).map(p => pcard(p, C[p.id])).join('')}</div>`
+  const kits = `<div class="card kitshow"><div class="sh"><h2 class="st">Formalar</h2><span class="muted" style="font-size:13px">2024/25 sezonu</span></div><div class="kits3">
+     <figure>${kitSVG({})}<figcaption><b>İç saha</b><small>Bordo, altın detay</small></figcaption></figure>
+     <figure>${kitSVG({ back: true, name: ME.name.split(' ')[0], num: ME.num || '10' })}<figcaption><b>Senin formam</b><small>${esc(up(ME.name.split(' ')[0]))} ${esc(ME.num || '')}</small></figcaption></figure>
+     <figure>${kitSVG({ gk: true })}<figcaption><b>Kaleci</b><small>Siyah, altın detay</small></figcaption></figure></div></div>`;
+  if (sqV === 'f') { $('#squad').innerHTML = kits + `<div class="futs">${[...list].sort((a, b) => ovr(b) - ovr(a)).map(p => `<button class="futb" data-prof="${p.id}" aria-label="${esc(p.name)} kartı">${futCard(p, C[p.id])}</button>`).join('')}</div>`; }
+  else $('#squad').innerHTML = sqV === 'c' ? `<div class="pcs">${[...list].sort((a, b) => ovr(b) - ovr(a)).map(p => pcard(p, C[p.id])).join('')}</div>`
     : '<div class="card">' + Object.keys(POS).filter(k => posF === 'ALL' || posF === k).map(k => { const g = list.filter(p => p.pos === k).sort((a, b) => (+a.num || 99) - (+b.num || 99)); return g.length ? `<div class="grp">${POSG[k]}</div>` + g.map(p => `<button class="lr" data-prof="${p.id}"><span class="no">${esc(p.num || '')}</span>${avatar(p, 'm')}<span class="n"><b>${esc(p.name)}</b><small>${C[p.id].matches} maç, ${C[p.id].goals} gol, ${C[p.id].assists} asist</small></span>${rb(C[p.id].avg)}</button>`).join('') : ''; }).join('') + '</div>';
   const LB = [['goals', 'Gol'], ['assists', 'Asist'], ['avg', 'Puan'], ['mvp', 'MVP'], ['matches', 'Katılım'], ['win', 'Galibiyet']];
   $('#lbS').innerHTML = LB.map(([k, l]) => `<button data-k="${k}" aria-pressed="${lbK === k}">${l}</button>`).join('');
@@ -809,6 +865,9 @@ function profile(id) {
    <div class="sec"><div class="kv"><div><b>${s.matches}</b><small>Maç</small></div><div><b>${s.goals}</b><small>Gol</small></div><div><b>${s.assists}</b><small>Asist</small></div><div><b>%${wr}</b><small>Galibiyet</small></div><div><b>${s.mvp}</b><small>Maçın adamı</small></div><div><b>${p.pos === 'KL' ? s.cs : ovr(p)}</b><small>${p.pos === 'KL' ? 'Gol yemediği maç' : 'Güç'}</small></div></div></div>
    <div class="sec"><h4>Form (son 5 maç)</h4>${s.log.length ? `<div class="form5">${s.log.slice(0, 5).map(x => `<div>${rb(x.rt)}<span class="res ${x.res === 'wins' ? 'G' : x.res === 'losses' ? 'M' : 'B'}" style="width:18px;height:18px;font-size:10px">${x.res === 'wins' ? 'G' : x.res === 'losses' ? 'M' : 'B'}</span><span>${fShort(when(x.m))}</span></div>`).join('')}</div>` : '<p class="sub">Henüz maç oynamadı.</p>'}</div>
    ${vids.length ? `<div class="sec"><h4>Videoları (${vids.length})</h4><div class="vgrid">${vids.slice(0, 6).map(thumb).join('')}</div></div>` : ''}
+   <div class="sec"><div class="sh"><h4 style="margin:0">Forma ve oyuncu kartı</h4><div class="seg" id="kitSeg"><button data-k="b" aria-pressed="true">Arka</button><button data-k="f" aria-pressed="false">Ön</button><button data-k="c" aria-pressed="false">FUT kartı</button></div></div>
+    <div class="kitstage" id="kitStage"><div class="kit-wrap" data-k="b">${kitSVG({ gk: p.pos === 'KL', back: true, name: p.name.split(' ')[0], num: p.num || '' })}</div><div class="kit-wrap hide" data-k="f">${kitSVG({ gk: p.pos === 'KL' })}</div><div class="kit-wrap hide" data-k="c"><div class="fut-one">${futCard(p, s)}</div></div></div>
+    <div class="row" style="justify-content:center;margin-top:10px"><button class="btn sm" id="kitShare">${IC.share}Görseli paylaş</button></div></div>
    <div class="sec"><h4>Özellikler</h4><div class="attr">${radar(p)}<div class="bars">${STATS.map(([k, l]) => `<div><span>${l}</span><i><span style="width:${p.stats[k]}%"></span></i><em>${p.stats[k]}</em></div>`).join('')}</div></div></div>
    <div class="sec"><h4>Rozetler</h4><div class="bdg">${BADGES.map(([e, n, f]) => `<div class="${f(s) ? '' : 'off'}"><span>${e}</span>${n}</div>`).join('')}</div></div>
    ${s.log.length ? `<div class="sec"><h4>Son maçlar</h4><div class="rl">${s.log.slice(0, 6).map(x => `<div><span class="res ${x.res === 'wins' ? 'G' : x.res === 'losses' ? 'M' : 'B'}">${x.res === 'wins' ? 'G' : x.res === 'losses' ? 'M' : 'B'}</span><button data-match="${x.m.id}" style="border:none;background:none;text-align:left;padding:0">${x.m.result.us}–${x.m.result.them} <span class="muted">vs ${esc(opp(x.m))}</span></button><span class="muted" style="font-size:12.5px">${x.g ? '⚽' + x.g + ' ' : ''}${x.a ? '🅰' + x.a : ''}${x.m.result.mvp === p.id ? ' ⭐' : ''}</span>${rb(x.rt)}</div>`).join('')}</div></div>` : ''}
@@ -818,6 +877,8 @@ function profile(id) {
     const c = b.querySelector('#pCam'); if (c) c.onclick = pickPhoto;
     const pm = b.querySelector('#pMe'); if (pm) pm.onclick = () => dlg.close();
     const pa = b.querySelector('#pAdm'); if (pa) pa.onclick = () => adminPlayer(p);
+    let kk = 'b'; b.querySelectorAll('#kitSeg button').forEach(x => x.onclick = () => { kk = x.dataset.k; b.querySelectorAll('#kitSeg button').forEach(y => y.setAttribute('aria-pressed', y === x)); b.querySelectorAll('.kit-wrap').forEach(w => w.classList.toggle('hide', w.dataset.k !== kk)); });
+    b.querySelector('#kitShare').onclick = () => { const el = kk === 'c' ? b.querySelector('.fut-one .fut') : b.querySelector('#kitStage'); shareCard(el, `goldnova-${kk === 'c' ? 'kart' : 'forma'}-${(p.name.split(' ')[0] || 'oyuncu').toLowerCase()}.png`); };
   });
 }
 function addGuest() {

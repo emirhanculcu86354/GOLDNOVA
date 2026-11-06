@@ -549,3 +549,78 @@ a.link{text-decoration:none}
 .fut-s span{font-weight:500;opacity:.85}
 .fut-f{position:absolute;left:0;right:0;top:88.5%;text-align:center;font-size:4cqw;letter-spacing:.3cqw;font-weight:600;opacity:.7;z-index:2}
 .fut-nova .fut-n{border-color:#D4AF37}
+
+/* ---- Süper Lig ---- */
+nav.tabs a{font-size:10.5px}
+.tl{width:20px;height:20px;object-fit:contain;flex:none}
+.tl.lg{width:54px;height:54px}
+.tl-x{display:inline-grid;place-items:center;border-radius:50%;background:var(--s2);font-size:8px;font-weight:800;color:var(--muted)}
+.tl-x.lg{font-size:14px}
+.lrow{display:grid;grid-template-columns:54px 1fr auto;gap:10px;align-items:center;width:100%;text-align:left;border:none;background:none;padding:9px 4px;border-bottom:1px solid var(--line)}
+.lrow:last-child{border-bottom:none}
+.lrow.gs{background:linear-gradient(90deg,rgba(253,185,18,.10),transparent 70%)}
+.lst{text-align:center;font-weight:700;font-size:13px;border-right:1px solid var(--line);padding-right:8px;line-height:1.15}
+.lst small{display:block;color:var(--muted);font-weight:500;font-size:11px}
+.lrow.live .lst{color:var(--bad)}
+.lteams{display:flex;flex-direction:column;gap:5px;min-width:0}
+.lteams span{display:flex;align-items:center;gap:8px;font-size:14.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lteams span.w,.lsc b.w{font-weight:800}
+.lsc{display:flex;flex-direction:column;gap:5px;text-align:right;font-weight:600;min-width:20px}
+.lrow.live .lsc{color:var(--bad)}
+.gs-hero{border-radius:20px;overflow:hidden;background:linear-gradient(115deg,#A90432 0 50%,#FDB912 50% 100%);padding:3px}
+.gs-hero-in{display:flex;align-items:center;gap:14px;background:linear-gradient(135deg,rgba(13,13,13,.92),rgba(40,8,14,.88));border-radius:17px;padding:16px;color:#fff}
+.gs-hero-in img{width:72px;height:72px;object-fit:contain;filter:drop-shadow(0 4px 10px rgba(0,0,0,.4))}
+.gs-hero-in b{display:block;font-stretch:75%;font-weight:800;font-size:28px;line-height:1}
+.gs-hero-in small{color:#FDB912;font-weight:600;font-size:13.5px}
+.lbig{display:block;width:100%;text-align:left;color:inherit;font:inherit}
+.lbig.live{border-color:var(--bad);box-shadow:0 0 0 1px var(--bad)}
+.lbig-b{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:8px}
+.lbig-c{text-align:center}
+.lbig-s{font-stretch:70%;font-weight:800;font-size:42px;line-height:1;display:flex;gap:6px;justify-content:center}
+.lbig-s i{font-style:normal;opacity:.5}
+.lbig-t{font-stretch:72%;font-weight:800;font-size:34px;line-height:1}
+.lbig-c small{display:block;color:var(--muted);font-size:12px;margin-top:4px}
+.livetxt{color:var(--bad)!important;font-weight:700;animation:pulse 1.4s infinite}
+.ltab-w{overflow-x:auto}
+.ltab{width:100%;border-collapse:collapse;font-size:14px;font-variant-numeric:tabular-nums}
+.ltab th{font-size:11.5px;color:var(--muted);font-weight:700;padding:6px 4px;text-align:center}
+.ltab td{padding:8px 4px;text-align:center;border-top:1px solid var(--line)}
+.ltab .tn{text-align:left;white-space:nowrap}
+.ltab td.tn{display:flex;align-items:center;gap:8px}
+.ltab td.tn img{width:20px;height:20px;object-fit:contain}
+.ltab tr.gs td{background:rgba(253,185,18,.12);font-weight:700}
+.zn{display:inline-grid;place-items:center;min-width:22px;height:22px;border-radius:6px;font-size:12px;font-weight:700}
+.z-cl{background:#1E6FD9;color:#fff}.z-el{background:#E08A1E;color:#fff}.z-rel{background:#C93B3B;color:#fff}
+.lgnd{display:flex;flex-wrap:wrap;gap:12px;padding:10px 8px 4px;font-size:12px;color:var(--muted)}
+.lgnd span{display:flex;align-items:center;gap:6px}.lgnd .zn{min-width:12px;height:12px;border-radius:3px}
+.lmh.live .score{color:#FF6B6B}
+.kes{display:flex;flex-direction:column;gap:6px;margin-top:12px}
+.ke{display:flex;gap:8px;align-items:baseline;font-size:14px;max-width:88%;background:var(--s2);border-radius:10px;padding:6px 10px}
+.ke b{min-width:34px;color:var(--muted);font-size:12.5px}
+.ke.a{align-self:flex-end;flex-direction:row-reverse;text-align:right}
+.stats{display:flex;flex-direction:column;gap:12px;margin-top:14px}
+.stl{display:flex;justify-content:space-between;font-size:13.5px;margin-bottom:4px}
+.stl span{color:var(--muted)}
+.stbar{display:flex;gap:4px;height:7px}
+.stbar i{display:block;height:100%;border-radius:9px;background:#A90432}
+.stbar i+i{background:var(--muted)}
+.gsmini{display:flex;flex-direction:column;gap:8px;width:100%;text-align:left;color:inherit;font:inherit;background:linear-gradient(135deg,rgba(169,4,50,.16),rgba(253,185,18,.10));border-color:rgba(253,185,18,.35)}
+.gsmini.live{border-color:var(--bad)}
+.gsm-l{font-size:12.5px;font-weight:700;color:var(--gold-ink)}
+.gsm-b{display:flex;align-items:center;gap:8px;font-size:14.5px}
+.gsm-b b{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.gsm-b b:last-of-type{text-align:right}
+.gsm-b em{font-style:normal;font-stretch:75%;font-weight:800;font-size:20px;padding:0 6px}
+.gsm-f{font-size:12px;color:var(--muted)}
+.tl-x{font-size:7px;overflow:hidden;letter-spacing:-.2px}
+
+/* ---- oylama, kasa, canlı ---- */
+.votes{display:flex;flex-direction:column;gap:6px}
+.vote{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;border:1px solid var(--line);background:var(--surface);border-radius:12px;padding:6px 10px;text-align:left}
+.vote.on{border-color:var(--gold);box-shadow:0 0 0 1px var(--gold)}
+.vote:disabled{cursor:default}
+.vn{position:relative;display:block;min-width:0}
+.vn b{display:block;font-weight:600;font-size:14px;position:relative;z-index:1}
+.vn i{position:absolute;left:0;bottom:-3px;height:3px;border-radius:3px;background:var(--gold)}
+.vote em{font-style:normal;font-weight:800;font-size:13px;color:var(--gold-ink)}
+.debt{color:var(--bad);font-stretch:80%;font-weight:800}
